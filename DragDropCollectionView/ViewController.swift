@@ -22,6 +22,7 @@ class ViewController: UIViewController {
     private enum Metric {
         static let cellWidth = 80.0
         static let cellHeight = 120.0
+        static let horizontalInset = 20.0
     }
     
     private lazy var collectionView: UICollectionView = {
@@ -31,14 +32,19 @@ class ViewController: UIViewController {
         layout.scrollDirection = .horizontal
         
         let view = UICollectionView(frame: .zero, collectionViewLayout: layout)
+        view.contentInset = .init(top: 0, left: Metric.horizontalInset, bottom: 0, right: Metric.horizontalInset)
         view.register(MyCell.self, forCellWithReuseIdentifier: "cell")
         view.dataSource = self
+
+        view.dragDelegate = self
+        view.dropDelegate = self
+        view.dragInteractionEnabled = true
         
         view.translatesAutoresizingMaskIntoConstraints = false
         return view
     }()
     
-    private var dataSource = (0...10).map(String.init)
+    private var dataSource = (0...10).map { _ in UIColor.randomColor }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -63,10 +69,61 @@ extension ViewController: UICollectionViewDataSource {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as? MyCell
         else { return UICollectionViewCell() }
         
-        var randomColor: CGFloat {
-            CGFloat(drand48())
-        }
-        cell.prepare(color: UIColor(red: randomColor, green: randomColor, blue: randomColor, alpha: 1.0))
+        cell.prepare(color: dataSource[indexPath.row])
         return cell
+    }
+}
+
+extension ViewController: UICollectionViewDragDelegate {
+    func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
+        [UIDragItem(itemProvider: NSItemProvider())]
+    }
+}
+
+extension ViewController: UICollectionViewDropDelegate {
+    func collectionView(_ collectionView: UICollectionView, dropSessionDidUpdate session: UIDropSession, withDestinationIndexPath destinationIndexPath: IndexPath?) -> UICollectionViewDropProposal {
+        guard collectionView.hasActiveDrag else {
+            return UICollectionViewDropProposal(operation: .forbidden)
+        }
+        return UICollectionViewDropProposal(operation: .move, intent: .insertAtDestinationIndexPath)
+    }
+    
+    func collectionView(_ collectionView: UICollectionView, performDropWith coordinator: UICollectionViewDropCoordinator) {
+        var destinationIndexPath: IndexPath
+        if let indexPath = coordinator.destinationIndexPath {
+            destinationIndexPath = indexPath
+        } else {
+            let row = collectionView.numberOfItems(inSection: 0)
+            destinationIndexPath = IndexPath(item: row - 1, section: 0)
+        }
+        
+        guard coordinator.proposal.operation == .move else { return }
+        swap(coordinator: coordinator, destinationIndexPath: destinationIndexPath, collectionView: collectionView)
+    }
+
+    private func swap(coordinator: UICollectionViewDropCoordinator, destinationIndexPath: IndexPath, collectionView: UICollectionView) {
+        guard
+            let sourceItem = coordinator.items.first,
+            let sourceIndexPath = sourceItem.sourceIndexPath
+        else { return }
+        
+        collectionView.performBatchUpdates { [weak self] in
+            self?.swap(sourceIndexPath: sourceIndexPath, destinationIndexPath: destinationIndexPath)
+        } completion: { finish in
+            print("finish:", finish)
+            coordinator.drop(sourceItem.dragItem, toItemAt: destinationIndexPath)
+        }
+    }
+
+    private func swap(sourceIndexPath: IndexPath, destinationIndexPath: IndexPath) {
+        let sourceItem = dataSource[sourceIndexPath.item]
+        
+        // dataSource 스왑
+        dataSource.remove(at: sourceIndexPath.item)
+        dataSource.insert(sourceItem, at: destinationIndexPath.item)
+        
+        // UI에 반영
+        collectionView.deleteItems(at: [sourceIndexPath])
+        collectionView.insertItems(at: [destinationIndexPath])
     }
 }
