@@ -25,6 +25,13 @@ class ViewController: UIViewController {
         static let horizontalInset = 20.0
     }
     
+    private let textField: UITextField = {
+        let field = UITextField()
+        field.placeholder = "jake iOS 앱 개발 알아가기"
+        field.translatesAutoresizingMaskIntoConstraints = false
+        return field
+    }()
+    
     private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         let mainSize = UIScreen.main.bounds
@@ -49,7 +56,14 @@ class ViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        view.addSubview(textField)
         view.addSubview(collectionView)
+        
+        NSLayoutConstraint.activate([
+            textField.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
+            textField.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+        ])
+        
         NSLayoutConstraint.activate([
             collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
