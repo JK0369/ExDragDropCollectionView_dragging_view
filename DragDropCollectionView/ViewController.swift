@@ -112,27 +112,27 @@ extension ViewController: UICollectionViewDropDelegate {
         }
         
         guard coordinator.proposal.operation == .move else { return }
-        swap(coordinator: coordinator, destinationIndexPath: destinationIndexPath, collectionView: collectionView)
+        move(coordinator: coordinator, destinationIndexPath: destinationIndexPath, collectionView: collectionView)
     }
 
-    private func swap(coordinator: UICollectionViewDropCoordinator, destinationIndexPath: IndexPath, collectionView: UICollectionView) {
+    private func move(coordinator: UICollectionViewDropCoordinator, destinationIndexPath: IndexPath, collectionView: UICollectionView) {
         guard
             let sourceItem = coordinator.items.first,
             let sourceIndexPath = sourceItem.sourceIndexPath
         else { return }
         
         collectionView.performBatchUpdates { [weak self] in
-            self?.swap(sourceIndexPath: sourceIndexPath, destinationIndexPath: destinationIndexPath)
+            self?.move(sourceIndexPath: sourceIndexPath, destinationIndexPath: destinationIndexPath)
         } completion: { finish in
             print("finish:", finish)
             coordinator.drop(sourceItem.dragItem, toItemAt: destinationIndexPath)
         }
     }
 
-    private func swap(sourceIndexPath: IndexPath, destinationIndexPath: IndexPath) {
+    private func move(sourceIndexPath: IndexPath, destinationIndexPath: IndexPath) {
         let sourceItem = dataSource[sourceIndexPath.item]
         
-        // dataSource 스왑
+        // dataSource 이동
         dataSource.remove(at: sourceIndexPath.item)
         dataSource.insert(sourceItem, at: destinationIndexPath.item)
         
