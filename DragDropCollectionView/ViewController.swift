@@ -8,13 +8,39 @@
 import UIKit
 
 final class MyCell: UICollectionViewCell {
-    override func prepareForReuse() {
-        super.prepareForReuse()
-        prepare(color: nil)
+    private let label: UILabel = {
+        let label = UILabel()
+        label.textColor = .black
+        label.font = .systemFont(ofSize: 16)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        return label
+    }()
+    
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        setupUI()
     }
     
-    func prepare(color: UIColor?) {
+    required init?(coder: NSCoder) {
+        fatalError()
+    }
+    
+    override func prepareForReuse() {
+        super.prepareForReuse()
+        prepare(color: nil, text: nil)
+    }
+    
+    func prepare(color: UIColor?, text: String?) {
         contentView.backgroundColor = color
+        label.text = text
+    }
+    
+    private func setupUI() {
+        contentView.addSubview(label)
+        NSLayoutConstraint.activate([
+            label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
+            label.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+        ])
     }
 }
 
@@ -83,7 +109,7 @@ extension ViewController: UICollectionViewDataSource {
             let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "cell", for: indexPath) as? MyCell
         else { return UICollectionViewCell() }
         
-        cell.prepare(color: dataSource[indexPath.row])
+        cell.prepare(color: dataSource[indexPath.row], text: "\(indexPath.row)")
         return cell
     }
 }
@@ -133,11 +159,16 @@ extension ViewController: UICollectionViewDropDelegate {
         let sourceItem = dataSource[sourceIndexPath.item]
         
         // dataSource 이동
-        dataSource.remove(at: sourceIndexPath.item)
-        dataSource.insert(sourceItem, at: destinationIndexPath.item)
-        
-        // UI에 반영
-        collectionView.deleteItems(at: [sourceIndexPath])
-        collectionView.insertItems(at: [destinationIndexPath])
+        DispatchQueue.main.async {
+            self.dataSource.remove(at: sourceIndexPath.item)
+            self.dataSource.insert(sourceItem, at: destinationIndexPath.item)
+            let indexPaths = self.dataSource
+                .enumerated()
+                .map(\.offset)
+                .map { IndexPath(row: $0, section: 0) }
+            UIView.performWithoutAnimation {
+                self.collectionView.reloadItems(at: indexPaths)
+            }
+        }
     }
 }
