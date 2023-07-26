@@ -36,6 +36,9 @@ final class MyCell: UICollectionViewCell {
     }
     
     private func setupUI() {
+        clipsToBounds = true
+        contentView.layer.cornerRadius = 20
+        
         contentView.addSubview(label)
         NSLayoutConstraint.activate([
             label.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
@@ -115,8 +118,32 @@ extension ViewController: UICollectionViewDataSource {
 }
 
 extension ViewController: UICollectionViewDragDelegate {
-    func collectionView(_ collectionView: UICollectionView, itemsForBeginning session: UIDragSession, at indexPath: IndexPath) -> [UIDragItem] {
-        [UIDragItem(itemProvider: NSItemProvider())]
+    func collectionView(
+        _ collectionView: UICollectionView,
+        itemsForBeginning session: UIDragSession,
+        at indexPath: IndexPath
+    ) -> [UIDragItem] {
+        let itemProvider = NSItemProvider()
+        let dragItem = UIDragItem(itemProvider: itemProvider)
+        
+        guard
+            let targetView = (collectionView.cellForItem(at: indexPath) as? MyCell)?.contentView,
+            let dragPreview = targetView.snapshotView(afterScreenUpdates: false)
+        else {
+            return [UIDragItem(itemProvider: NSItemProvider())]
+        }
+        
+        let previewParameters = UIDragPreviewParameters()
+        previewParameters.visiblePath = UIBezierPath(
+            roundedRect: dragPreview.bounds,
+            cornerRadius: targetView.layer.cornerRadius
+        )
+        
+        dragItem.previewProvider = { () -> UIDragPreview? in
+            UIDragPreview(view: dragPreview, parameters: previewParameters)
+        }
+        
+        return [dragItem]
     }
 }
 
